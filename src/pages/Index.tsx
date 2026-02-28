@@ -23,10 +23,13 @@ const STEPS = [
   { num: "04", title: "Играй!", desc: "Общайся в Discord, участвуй в турнирах, качай статистику." },
 ];
 
-const DONATE_TIERS = [
-  { name: "RECRUIT", price: "199 ₽ / мес", perks: ["Кастомный никнейм", "Доступ к VIP серверу", "5 000 игровых монет"], color: "#aaa", hot: false },
-  { name: "SOLDIER", price: "499 ₽ / мес", perks: ["Всё из Recruit", "Приоритетный слот", "Эксклюзивный скин", "Без рекламы"], color: "#00ff88", hot: true },
-  { name: "GENERAL", price: "999 ₽ / мес", perks: ["Всё из Soldier", "Личный сервер", "Голос в управлении", "Мерч со скидкой 40%"], color: "#ff2244", hot: false },
+const SEM_PACKAGES = [
+  { sem: 100, rub: 100, bonus: 0 },
+  { sem: 500, rub: 500, bonus: 50 },
+  { sem: 1000, rub: 1000, bonus: 150 },
+  { sem: 2500, rub: 2500, bonus: 500 },
+  { sem: 5000, rub: 5000, bonus: 1000 },
+  { sem: 10000, rub: 10000, bonus: 2500 },
 ];
 
 type Section = "home" | "merch" | "donate" | "discounts" | "guide";
@@ -223,45 +226,86 @@ export default function Index() {
       {/* ============ DONATE ============ */}
       {activeSection === "donate" && (
         <div className="pt-24 min-h-screen">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
-            <div className="section-num mb-4">// ПОДДЕРЖКА СЕРВЕРА</div>
-            <h2 className="text-5xl sm:text-6xl font-black uppercase mb-4" style={{ fontFamily: 'Oswald, sans-serif' }}>
-              Стань <span className="neon-text">донатером</span>
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16">
+            <div className="section-num mb-4">// ВНУТРЕННЯЯ ВАЛЮТА</div>
+            <h2 className="text-5xl sm:text-6xl font-black uppercase mb-2" style={{ fontFamily: 'Oswald, sans-serif' }}>
+              Купи <span className="neon-text">SEM</span>
             </h2>
-            <p className="text-white/50 mb-16 max-w-lg">Поддержи сервер и получи уникальные привилегии. Каждый взнос делает SEMSTRAIK лучше.</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {DONATE_TIERS.map((tier, i) => (
-                <div key={i} className={`dark-card relative overflow-hidden ${tier.hot ? 'ring-1 ring-[#00ff88]' : ''}`}
-                  style={{ boxShadow: tier.hot ? '0 0 40px rgba(0,255,136,0.15)' : 'none' }}>
-                  {tier.hot && <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#00ff88] to-transparent" />}
-                  {tier.hot && (
-                    <div className="absolute top-4 right-4 px-2 py-0.5 text-xs font-bold" style={{ fontFamily: 'IBM Plex Mono, monospace', background: '#00ff88', color: '#000' }}>TOP</div>
-                  )}
-                  <div className="p-8">
-                    <div className="text-xs text-white/30 mb-3 tracking-widest" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>УРОВЕНЬ</div>
-                    <h3 className="text-3xl font-black mb-1 uppercase" style={{ fontFamily: 'Oswald, sans-serif', color: tier.color }}>{tier.name}</h3>
-                    <div className="text-2xl font-black text-white mb-8" style={{ fontFamily: 'Oswald, sans-serif' }}>{tier.price}</div>
-                    <div className="space-y-3 mb-8">
-                      {tier.perks.map((p, j) => (
-                        <div key={j} className="flex items-center gap-3">
-                          <Icon name="Check" size={12} className="text-[#00ff88] flex-shrink-0" />
-                          <span className="text-white/70 text-sm">{p}</span>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="px-3 py-1 border border-[#00ff88]/40 text-[#00ff88] text-xs tracking-widest" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>
+                1 SEM = 1 ₽
+              </div>
+              <span className="text-white/30 text-sm">Официальный курс</span>
+            </div>
+            <p className="text-white/50 mb-16 max-w-lg">Semen — внутренняя валюта SEMSTRAIK. Трать на привилегии, скины, мерч и доступ к закрытым серверам.</p>
+
+            {/* Exchange Rate Banner */}
+            <div className="mb-10 p-5 border border-[#00ff88]/20 bg-[#00ff88]/5 flex items-center gap-5">
+              <div className="w-12 h-12 border border-[#00ff88]/50 flex items-center justify-center flex-shrink-0" style={{ boxShadow: '0 0 20px rgba(0,255,136,0.2)' }}>
+                <span className="text-[#00ff88] font-black text-lg" style={{ fontFamily: 'Oswald, sans-serif' }}>S</span>
+              </div>
+              <div>
+                <div className="font-black text-white text-lg uppercase" style={{ fontFamily: 'Oswald, sans-serif' }}>
+                  Курс фиксирован навсегда
+                </div>
+                <p className="text-white/40 text-sm">1 рубль = 1 SEM. Без комиссий, без скрытых платежей. Бонусы при покупке пакетов.</p>
+              </div>
+            </div>
+
+            {/* Packages Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {SEM_PACKAGES.map((pkg, i) => {
+                const isPopular = i === 2;
+                const totalSem = pkg.sem + pkg.bonus;
+                return (
+                  <div key={i} className={`dark-card relative overflow-hidden cursor-pointer group transition-all ${isPopular ? 'ring-1 ring-[#00ff88]' : 'hover:border-[#00ff88]/30'}`}
+                    style={{ boxShadow: isPopular ? '0 0 30px rgba(0,255,136,0.12)' : '' }}>
+                    {isPopular && <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#00ff88] to-transparent" />}
+                    {isPopular && (
+                      <div className="absolute top-3 right-3 px-2 py-0.5 text-xs font-bold" style={{ fontFamily: 'IBM Plex Mono, monospace', background: '#00ff88', color: '#000' }}>POPULAR</div>
+                    )}
+                    {pkg.bonus > 0 && (
+                      <div className="absolute top-3 left-3 px-2 py-0.5 text-xs font-bold bg-[#ff2244] text-white" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>
+                        +{pkg.bonus} SEM
+                      </div>
+                    )}
+                    <div className="p-6 pt-10">
+                      <div className="text-3xl font-black mb-1 neon-text" style={{ fontFamily: 'Oswald, sans-serif' }}>
+                        {totalSem.toLocaleString('ru-RU')}
+                      </div>
+                      <div className="text-xs text-white/40 mb-5" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>SEM</div>
+                      {pkg.bonus > 0 && (
+                        <div className="text-xs text-white/30 mb-1 line-through" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>
+                          {pkg.sem.toLocaleString('ru-RU')} SEM
                         </div>
-                      ))}
+                      )}
+                      <div className="text-xl font-bold text-white mb-5" style={{ fontFamily: 'Oswald, sans-serif' }}>
+                        {pkg.rub.toLocaleString('ru-RU')} ₽
+                      </div>
+                      <button className={`w-full py-2.5 text-xs uppercase tracking-widest font-bold transition-all ${isPopular ? 'red-btn' : 'neon-btn'}`}>
+                        Купить
+                      </button>
                     </div>
-                    <button className={tier.hot ? "red-btn w-full py-3 text-sm font-bold uppercase tracking-widest" : "neon-btn w-full py-3 text-sm uppercase"}>
-                      Выбрать план
-                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* What to spend */}
+            <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                { icon: "Shirt", title: "Мерч", desc: "Покупай товары в магазине за SEM" },
+                { icon: "Star", title: "Привилегии", desc: "VIP-слоты, скины, кастомный ник" },
+                { icon: "Server", title: "Серверы", desc: "Доступ к закрытым и приватным серверам" },
+              ].map((item, i) => (
+                <div key={i} className="dark-card p-5 flex items-start gap-4">
+                  <Icon name={item.icon} size={18} className="text-[#00ff88] flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold uppercase text-sm mb-1" style={{ fontFamily: 'Oswald, sans-serif' }}>{item.title}</div>
+                    <p className="text-white/40 text-xs">{item.desc}</p>
                   </div>
                 </div>
               ))}
-            </div>
-            <div className="mt-12 p-6 dark-card flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-              <Icon name="Heart" size={32} className="text-[#ff2244] flex-shrink-0" />
-              <div>
-                <div className="font-bold uppercase mb-1" style={{ fontFamily: 'Oswald, sans-serif' }}>Разовое пожертвование</div>
-                <p className="text-white/40 text-sm">Хочешь поддержать без подписки? Напиши нам в Discord — мы примем любую сумму.</p>
-              </div>
             </div>
           </div>
         </div>
