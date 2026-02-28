@@ -1,0 +1,28 @@
+{
+  "tests": [
+    {
+      "name": "Login as DezeYT",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "login", "username": "DezeYT", "password": "ermolovo4"},
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Login wrong password",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "login", "username": "DezeYT", "password": "wrongpass"},
+      "expectedStatus": 401,
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Register duplicate",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "register", "username": "DezeYT", "password": "somepass"},
+      "expectedStatus": 409,
+      "bodyMatcher": "partial"
+    }
+  ]
+}

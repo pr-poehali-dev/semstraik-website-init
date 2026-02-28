@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 
 const HERO_IMG = "https://cdn.poehali.dev/projects/494c0bec-8a7d-4adc-bbc8-542ec59cb4a1/files/d178fde8-3396-401f-bc10-8c9ef4909a9c.jpg";
@@ -32,13 +32,59 @@ const SEM_PACKAGES = [
   { sem: 10000, rub: 10000, bonus: 2500 },
 ];
 
+const AUTH_URL = "https://functions.poehali.dev/92fff111-26c7-46a5-ad57-ffdcd603ffdd";
+
 type Section = "home" | "merch" | "donate" | "discounts" | "guide";
+type AuthTab = "login" | "register";
+interface User { id: number; username: string; is_admin: boolean; sem_balance: number; }
 
 export default function Index() {
   const [activeSection, setActiveSection] = useState<Section>("home");
   const [profileOpen, setProfileOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const [user, setUser] = useState<User | null>(null);
+  const [authTab, setAuthTab] = useState<AuthTab>("login");
+  const [authUsername, setAuthUsername] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+
+  useEffect(() => {
+    const sid = localStorage.getItem("session_id");
+    if (!sid) return;
+    fetch(AUTH_URL, { headers: { "X-Session-Id": sid } })
+      .then(r => r.json())
+      .then(d => { if (d.id) setUser(d); else localStorage.removeItem("session_id"); })
+      .catch(() => {});
+  }, []);
+
+  const doAuth = async () => {
+    setAuthError("");
+    if (!authUsername.trim() || !authPassword) { setAuthError("Заполни все поля"); return; }
+    setAuthLoading(true);
+    try {
+      const res = await fetch(AUTH_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: authTab, username: authUsername.trim(), password: authPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setAuthError(data.error || "Ошибка"); }
+      else {
+        localStorage.setItem("session_id", data.session_id);
+        setUser(data.user);
+        setAuthUsername(""); setAuthPassword(""); setAuthError("");
+      }
+    } catch { setAuthError("Ошибка сети"); }
+    setAuthLoading(false);
+  };
+
+  const logout = () => {
+    localStorage.removeItem("session_id");
+    setUser(null);
+  };
 
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -81,7 +127,7 @@ export default function Index() {
           <div className="flex items-center gap-3">
             <button onClick={() => setProfileOpen(true)} className="flex items-center gap-2 px-4 py-2 neon-btn text-sm">
               <Icon name="User" size={14} />
-              <span className="hidden sm:inline">Кабинет</span>
+              <span className="hidden sm:inline">{user ? user.username : "Войти"}</span>
             </button>
             <button className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               <Icon name={mobileMenuOpen ? "X" : "Menu"} size={20} className="text-white/70" />
@@ -416,7 +462,7 @@ export default function Index() {
       {/* ============ PROFILE MODAL ============ */}
       {profileOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop" onClick={() => setProfileOpen(false)}>
-          <div className="dark-card w-full max-w-md mx-4 relative overflow-hidden" onClick={e => e.stopPropagation()}
+          <div className="dark-card w-full max-w-md mx-4 relative overflow-hidden" onClick={ev => ev.stopPropagation()}
             style={{ border: '1px solid rgba(0,255,136,0.2)', boxShadow: '0 0 60px rgba(0,255,136,0.1)' }}>
             <div className="h-0.5 bg-gradient-to-r from-[#00ff88] via-[#00ff88]/50 to-transparent" />
             <div className="p-8">
@@ -429,33 +475,82 @@ export default function Index() {
                   <Icon name="X" size={20} />
                 </button>
               </div>
-              <div className="flex items-center gap-4 mb-8 p-4 bg-white/3 border border-white/5">
-                <div className="w-14 h-14 border border-[#00ff88]/50 flex items-center justify-center" style={{ boxShadow: '0 0 15px rgba(0,255,136,0.2)' }}>
-                  <Icon name="User" size={24} className="text-[#00ff88]" />
-                </div>
-                <div>
-                  <div className="font-bold uppercase" style={{ fontFamily: 'Oswald, sans-serif' }}>STRIKER_007</div>
-                  <div className="text-xs text-white/40" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Уровень: RECRUIT</div>
-                </div>
-              </div>
-              <div className="space-y-3">
-                {[
-                  { icon: "Settings", label: "Настройки профиля" },
-                  { icon: "CreditCard", label: "Управление подпиской" },
-                  { icon: "Trophy", label: "Моя статистика" },
-                  { icon: "Package", label: "Мои заказы (мерч)" },
-                ].map((item, i) => (
-                  <button key={i} className="w-full flex items-center gap-4 p-4 bg-white/3 border border-white/5 hover:border-[#00ff88]/30 hover:bg-white/5 transition-all text-left group">
-                    <Icon name={item.icon} size={16} className="text-white/40 group-hover:text-[#00ff88] transition-colors" />
-                    <span className="text-sm text-white/70 group-hover:text-white transition-colors">{item.label}</span>
-                    <Icon name="ChevronRight" size={14} className="text-white/20 ml-auto group-hover:text-white/50 transition-colors" />
+
+              {user ? (
+                <>
+                  <div className="flex items-center gap-4 mb-6 p-4 bg-white/3 border border-white/5">
+                    <div className="w-14 h-14 border border-[#00ff88]/50 flex items-center justify-center flex-shrink-0" style={{ boxShadow: '0 0 15px rgba(0,255,136,0.2)' }}>
+                      <Icon name="User" size={24} className="text-[#00ff88]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold uppercase truncate" style={{ fontFamily: 'Oswald, sans-serif' }}>{user.username}</div>
+                      <div className="text-xs text-white/40" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>
+                        ID: {user.id} {user.is_admin && <span className="text-[#ff2244] ml-2">ADMIN</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 mb-6 p-3 border border-[#00ff88]/20 bg-[#00ff88]/5">
+                    <Icon name="Coins" size={16} className="text-[#00ff88]" />
+                    <span className="text-sm font-bold neon-text" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{user.sem_balance.toLocaleString('ru-RU')} SEM</span>
+                    <button onClick={() => { setActiveSection("donate"); setProfileOpen(false); }}
+                      className="ml-auto text-xs text-white/40 hover:text-[#00ff88] transition-colors">Пополнить →</button>
+                  </div>
+                  <div className="space-y-2 mb-6">
+                    {[
+                      { icon: "Settings", label: "Настройки профиля" },
+                      { icon: "Trophy", label: "Моя статистика" },
+                      { icon: "Package", label: "Мои заказы (мерч)" },
+                    ].map((item, i) => (
+                      <button key={i} className="w-full flex items-center gap-4 p-4 bg-white/3 border border-white/5 hover:border-[#00ff88]/30 hover:bg-white/5 transition-all text-left group">
+                        <Icon name={item.icon} size={16} className="text-white/40 group-hover:text-[#00ff88] transition-colors" />
+                        <span className="text-sm text-white/70 group-hover:text-white transition-colors">{item.label}</span>
+                        <Icon name="ChevronRight" size={14} className="text-white/20 ml-auto group-hover:text-white/50 transition-colors" />
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={logout} className="w-full py-3 text-sm uppercase border border-white/10 text-white/40 hover:text-white hover:border-white/30 transition-all tracking-widest" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>
+                    Выйти
                   </button>
-                ))}
-              </div>
-              <div className="mt-6 pt-6 border-t border-white/5 flex gap-3">
-                <button className="flex-1 neon-btn py-3 text-sm uppercase">Войти</button>
-                <button className="flex-1 red-btn py-3 text-sm uppercase">Регистрация</button>
-              </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex mb-6 border border-white/10">
+                    <button onClick={() => { setAuthTab("login"); setAuthError(""); }}
+                      className={`flex-1 py-3 text-sm uppercase tracking-widest transition-all ${authTab === "login" ? "bg-[#00ff88] text-black font-bold" : "text-white/40 hover:text-white"}`}
+                      style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Вход</button>
+                    <button onClick={() => { setAuthTab("register"); setAuthError(""); }}
+                      className={`flex-1 py-3 text-sm uppercase tracking-widest transition-all ${authTab === "register" ? "bg-[#00ff88] text-black font-bold" : "text-white/40 hover:text-white"}`}
+                      style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Регистрация</button>
+                  </div>
+                  <div className="space-y-3 mb-4">
+                    <div>
+                      <div className="text-xs text-white/40 mb-1 uppercase tracking-widest" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Ник</div>
+                      <input value={authUsername} onChange={e => setAuthUsername(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && doAuth()}
+                        placeholder="DezeYT"
+                        className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white text-sm outline-none focus:border-[#00ff88]/50 transition-colors"
+                        style={{ fontFamily: 'IBM Plex Mono, monospace' }} />
+                    </div>
+                    <div>
+                      <div className="text-xs text-white/40 mb-1 uppercase tracking-widest" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Пароль</div>
+                      <input type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && doAuth()}
+                        placeholder="••••••••"
+                        className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white text-sm outline-none focus:border-[#00ff88]/50 transition-colors"
+                        style={{ fontFamily: 'IBM Plex Mono, monospace' }} />
+                    </div>
+                  </div>
+                  {authError && (
+                    <div className="mb-4 px-4 py-2 border border-[#ff2244]/40 bg-[#ff2244]/10 text-[#ff2244] text-sm" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>
+                      {authError}
+                    </div>
+                  )}
+                  <button onClick={doAuth} disabled={authLoading}
+                    className="w-full neon-btn py-3 text-sm uppercase tracking-widest disabled:opacity-50">
+                    {authLoading ? "..." : authTab === "login" ? "Войти" : "Зарегистрироваться"}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
